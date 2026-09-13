@@ -1,14 +1,14 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-page-node-id="Lxf8zn3rT3thoPiC1r32BS">
-<head data-page-node-id="EJIbNh0GtMq5RTKPGBLsHz">
-<meta charset="UTF-8" data-page-node-id="juECxkMmIEzyWChRtUe75L">
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
 <title>WinSimu - 我的第一个 Windows 模拟器</title>
 <style>
   /* ============ 全局 ============ */
   * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
   body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; overflow: hidden; height: 100vh; }
 
-  /* ============ 桌面壁纸（模拟 Win11 的"绽放"渐变）============ */
+  /* ============ 桌面壁纸 ============ */
   #desktop {
     position: fixed; inset: 0;
     background: linear-gradient(135deg, #0a2a5e 0%, #1e63b8 35%, #3fa9f5 60%, #7fd4ff 100%);
@@ -33,7 +33,7 @@
   }
   .titlebar {
     height: 38px; display: flex; align-items: center;
-    padding-left: 12px; cursor: move;               /* 鼠标变成"可拖动"手势 */
+    padding-left: 12px; cursor: move;
     font-size: 13px; color: #1a1a2e;
   }
   .titlebar .btns { margin-left: auto; display: flex; height: 100%; }
@@ -41,7 +41,7 @@
     width: 46px; height: 100%; border: none; background: transparent;
     font-size: 12px; cursor: pointer; color: #333;
   }
-  .titlebar .btn.close:hover { background: #e81123; color: #fff; }  /* 经典红色关闭键 */
+  .titlebar .btn.close:hover { background: #e81123; color: #fff; }
   .titlebar .btn:not(.close):hover { background: rgba(0,0,0,0.08); }
   .window .content { flex: 1; padding: 12px; overflow: auto; font-size: 14px; user-select: text; }
 
@@ -54,7 +54,7 @@
   }
   .tb-btn {
     width: 40px; height: 40px; border-radius: 6px; border: none;
-    background: transparent; font-size: 20px; cursor: pointer;
+    background: transparent; font-size: 20px; cursor: pointer; color: #fff;
     display: flex; align-items: center; justify-content: center;
   }
   .tb-btn:hover { background: rgba(255,255,255,0.12); }
@@ -69,11 +69,12 @@
   .win-logo span:nth-child(2){ background:#7fba00; }
   .win-logo span:nth-child(3){ background:#00a4ef; }
   .win-logo span:nth-child(4){ background:#ffb900; }
+  .win-logo.big { width: 72px; height: 72px; gap: 6px; }
 
   /* ============ 开始菜单 ============ */
   #startmenu {
     position: fixed; bottom: 58px; left: 50%; transform: translateX(-50%);
-    width: 480px; max-height: 520px;
+    width: 480px; max-height: 560px;
     background: rgba(38, 46, 80, 0.9); backdrop-filter: blur(30px);
     border-radius: 12px; padding: 20px; z-index: 9500;
     display: none; flex-direction: column; gap: 10px;
@@ -90,76 +91,337 @@
   }
   #startmenu .app:hover { background: rgba(255,255,255,0.15); }
   #startmenu .app .glyph { font-size: 26px; display: block; margin-bottom: 4px; }
+  /* 开始菜单底栏：当前用户 + 电源按钮 */
+  .sm-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px;
+  }
+  .sm-user {
+    display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px;
+    cursor: pointer; padding: 6px 10px; border-radius: 8px;
+  }
+  .sm-user:hover { background: rgba(255,255,255,0.12); }
+  .avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; background: #0078d7; color: #fff;
+  }
+  /* 电源弹出菜单 */
+  #power-menu {
+    position: absolute; right: 20px; bottom: 70px;
+    background: rgba(38, 46, 80, 0.95); backdrop-filter: blur(30px);
+    border-radius: 8px; padding: 6px; display: none; flex-direction: column;
+    min-width: 120px; z-index: 9600;
+  }
+  #power-menu.open { display: flex; }
+  #power-menu div {
+    color: #fff; font-size: 13px; padding: 9px 14px; border-radius: 6px; cursor: pointer;
+  }
+  #power-menu div:hover { background: rgba(255,255,255,0.15); }
+
+  /* ============ 开机画面 ============ */
+  #boot-screen {
+    position: fixed; inset: 0; background: #000; z-index: 100001;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 40px; color: #fff;
+  }
+  .boot-tip { font-size: 14px; opacity: 0.7; letter-spacing: 2px; }
+
+  /* ============ 选账号（登录）界面 ============ */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 100000;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; gap: 10px;
+  }
+  #login-screen .blur { position: absolute; inset: 0; backdrop-filter: blur(30px) brightness(0.6); }
+  #login-screen > * { position: relative; }
+  .login-time { font-size: 72px; font-weight: 200; text-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+  .login-date { font-size: 18px; opacity: 0.85; margin-bottom: 30px; }
+  .login-accounts { display: flex; gap: 40px; }
+  .login-user {
+    display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer;
+    padding: 18px 26px; border-radius: 12px; transition: background 0.2s;
+  }
+  .login-user:hover { background: rgba(255,255,255,0.12); }
+  .login-user .avatar { width: 84px; height: 84px; font-size: 44px; box-shadow: 0 4px 18px rgba(0,0,0,0.4); }
+  .login-user .uname { font-size: 16px; }
+  .login-hint { font-size: 13px; opacity: 0.6; margin-top: 24px; }
+  #login-welcome { display: none; flex-direction: column; align-items: center; gap: 18px; font-size: 22px; }
+
+  /* ============ 电源过渡屏（正在注销/重启/关机）============ */
+  #power-overlay {
+    position: fixed; inset: 0; background: #000; color: #fff; z-index: 100002;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 28px; font-size: 20px; letter-spacing: 2px;
+  }
+
+  /* ============ 关机黑屏（点它开机）============ */
+  #off-screen {
+    position: fixed; inset: 0; background: #000; z-index: 100003;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 20px; color: #666; cursor: pointer;
+  }
+  #off-screen .power-icon {
+    width: 76px; height: 76px; border: 3px solid #444; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 34px;
+    transition: all 0.3s;
+  }
+  #off-screen:hover .power-icon { border-color: #0078d7; color: #0078d7; box-shadow: 0 0 30px rgba(0,120,215,0.4); }
+  #off-screen .tip { font-size: 14px; }
+
+  /* ============ 转圈动画（微软风格小圆环）============ */
+  .spinner {
+    width: 34px; height: 34px; border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.2); border-top-color: #fff;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ============ 个性化设置：预览卡片 ============ */
+  .live-preview {
+    position: relative; height: 130px; border-radius: 8px; overflow: hidden;
+    border: 2px solid rgba(0,0,0,0.1); transition: background 0.4s;
+  }
+  .lp-taskbar {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 22px;
+    background: rgba(30, 40, 70, 0.75); display: flex; align-items: center;
+    justify-content: center; gap: 6px;
+  }
+  .lp-taskbar .win-logo { width: 10px; height: 10px; gap: 1px; }
+  .lp-avatar {
+    position: absolute; right: 6px; font-size: 12px;
+  }
+  .opt-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+  .opt-card {
+    width: 96px; cursor: pointer; text-align: center; font-size: 12px;
+    border: 2px solid transparent; border-radius: 8px; padding: 6px;
+    background: rgba(255,255,255,0.5); transition: all 0.2s;
+  }
+  .opt-card:hover { background: rgba(255,255,255,0.8); }
+  .opt-card.active { border-color: #0078d7; }
+  .opt-card .swatch { height: 54px; border-radius: 5px; margin-top: 5px; }
+  .opt-card .emoji-swatch {
+    height: 54px; display: flex; align-items: center; justify-content: center;
+    font-size: 34px; margin-top: 5px; background: rgba(0,0,0,0.05); border-radius: 5px;
+  }
+  .opt-row { display: flex; gap: 10px; flex-wrap: wrap; }
 
   /* ============ 蓝屏彩蛋 ============ */
   #bsod {
     position: fixed; inset: 0; background: #0078d7; color: #fff;
     display: none; flex-direction: column; justify-content: center;
-    padding-left: 10vw; z-index: 99999; font-family: "Segoe UI", sans-serif;
+    padding-left: 10vw; z-index: 100004; font-family: "Segoe UI", sans-serif;
   }
   #bsod h1 { font-size: 80px; font-weight: 300; }
   #bsod p  { font-size: 22px; margin-top: 16px; max-width: 60vw; }
   #bsod .code { font-size: 15px; margin-top: 30px; opacity: 0.9; }
+
+  /* ============ 桌面左下角常驻免责声明 ============ */
+  #disclaimer {
+    position: fixed; left: 12px; bottom: 56px; z-index: 8000;
+    color: rgba(255,255,255,0.55); font-size: 11px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5); pointer-events: none;
+  }
 </style>
 </head>
-<body data-page-node-id="2pj54SshDCvoICi6a0Hbrs">
+<body>
+
+<!-- ① 开机画面（最先进来） -->
+<div id="boot-screen">
+  <div class="win-logo big"><span></span><span></span><span></span><span></span></div>
+  <div class="spinner"></div>
+  <p class="boot-tip">正在启动 WinSimu…</p>
+</div>
+
+<!-- ② 选账号（登录）界面 -->
+<div id="login-screen">
+  <div class="blur"></div>
+  <div class="login-time" id="login-time">--:--</div>
+  <div class="login-date" id="login-date"></div>
+  <div class="login-accounts" id="login-accounts"></div>
+  <div id="login-welcome"><div class="spinner"></div><span id="welcome-text">欢迎</span></div>
+  <p class="login-hint" id="login-hint">点击账号登录</p>
+</div>
+
+<!-- ③ 电源过渡屏 -->
+<div id="power-overlay"><div class="spinner"></div><p id="power-text">正在关机…</p></div>
+
+<!-- ④ 关机黑屏（点击开机） -->
+<div id="off-screen" onclick="bootUp()">
+  <div class="power-icon">⏻</div>
+  <p class="tip">电脑已关机，点击开机</p>
+</div>
 
 <!-- 桌面 -->
-<div id="desktop" data-page-node-id="OFYkcmkCcvF6KTYDhVgXv3"></div>
-<div id="icons" data-page-node-id="Dcp5RpxPrCWDYffzcZqhin">
-  <div class="icon" ondblclick="openApp('notepad')" data-page-node-id="6inb99gNAQApDyCH8qNkDA">
-    <div class="glyph" data-page-node-id="GJJDcBvI1KRgkMVljrYqHf">📝</div><div class="label" data-page-node-id="b7VutFM3bPa9bEkUu6Qekt">记事本</div>
+<div id="desktop"></div>
+<div id="icons">
+  <div class="icon" ondblclick="openApp('notepad')">
+    <div class="glyph">📝</div><div class="label">记事本</div>
   </div>
-  <div class="icon" ondblclick="openApp('calc')" data-page-node-id="IxO2emxgvRB2lHVhJYc2MU">
-    <div class="glyph" data-page-node-id="tou8pgLEOuBorOALk3nOoA">🧮</div><div class="label" data-page-node-id="lzzgrM0XfPjhzxywA2fPvX">计算器</div>
+  <div class="icon" ondblclick="openApp('calc')">
+    <div class="glyph">🧮</div><div class="label">计算器</div>
   </div>
-  <div class="icon" ondblclick="openApp('settings')" data-page-node-id="RSsu9jWOVNNhgJirZnVW3D">
-    <div class="glyph" data-page-node-id="oP9JiuAgHfQPf4GzLHHnDH">⚙️</div><div class="label" data-page-node-id="7C8beGBYhxlivZCL4n9ZD1">设置</div>
+  <div class="icon" ondblclick="openApp('settings')">
+    <div class="glyph">⚙️</div><div class="label">设置</div>
   </div>
-  <div class="icon" ondblclick="openApp('about')" data-page-node-id="ueM1sjFSxuSfLEc5myb3kW">
-    <div class="glyph" data-page-node-id="tiDmSwKZTevDHVqgO0w21K">💻</div><div class="label" data-page-node-id="BFIgl8r2OcKddGJKHzUVFB">此电脑</div>
+  <div class="icon" ondblclick="openApp('about')">
+    <div class="glyph">💻</div><div class="label">此电脑</div>
   </div>
 </div>
 
 <!-- 开始菜单 -->
-<div id="startmenu" data-page-node-id="CyXYjvqmhwnTSqRhj0s95W">
-  <input class="search" placeholder="搜索（装饰品，还没实现 😄）" readonly data-page-node-id="YG5bjMBSaspsUdul7dY2SY">
-  <div class="appgrid" data-page-node-id="teAZ0FGuq8niOJLjzUhXD8">
-    <div class="app" onclick="openApp('notepad')" data-page-node-id="3IuInNNf42Nhwh42s453IE"><span class="glyph" data-page-node-id="WktUUlCfTuCQPlEf5K9vZD">📝</span>记事本</div>
-    <div class="app" onclick="openApp('calc')" data-page-node-id="drWuqNpc8LZTCfNlWNmHb9"><span class="glyph" data-page-node-id="CYFJukZoEc1wr4vnVoVwo4">🧮</span>计算器</div>
-    <div class="app" onclick="openApp('settings')" data-page-node-id="bkAV0OoceJOs6QDMu7WxPh"><span class="glyph" data-page-node-id="CQg29JQBWvxSQTqCGeIZvt">⚙️</span>设置</div>
-    <div class="app" onclick="bsod()" data-page-node-id="Yu1wlIbzb1mEdLvgf0H35a"><span class="glyph" data-page-node-id="20GwhSvrVxwipS8MYt3bsp">💀</span>蓝屏（彩蛋）</div>
+<div id="startmenu">
+  <input class="search" placeholder="搜索（装饰品，还没实现 😄）" readonly>
+  <div class="appgrid">
+    <div class="app" onclick="openApp('notepad')"><span class="glyph">📝</span>记事本</div>
+    <div class="app" onclick="openApp('calc')"><span class="glyph">🧮</span>计算器</div>
+    <div class="app" onclick="openApp('settings')"><span class="glyph">⚙️</span>设置</div>
+    <div class="app" onclick="bsod()"><span class="glyph">💀</span>蓝屏（彩蛋）</div>
+  </div>
+  <div class="sm-footer">
+    <div class="sm-user" onclick="openApp('settings')">
+      <span class="avatar" id="sm-avatar">🧑‍💻</span>
+      <span id="sm-username">copilot</span>
+    </div>
+    <button class="tb-btn" onclick="togglePowerMenu(event)" title="电源">⏻</button>
+  </div>
+  <div id="power-menu">
+    <div onclick="signOut()">🚪 注销</div>
+    <div onclick="restartPC()">🔄 重启</div>
+    <div onclick="shutdownPC()">⏻ 关机</div>
   </div>
 </div>
 
 <!-- 任务栏 -->
-<div id="taskbar" data-page-node-id="Iayi1RaesLcVB85N7rpnZa">
-  <button class="tb-btn" onclick="toggleStart()" title="开始" data-page-node-id="iv18q6lFzMznEEjfFZZBoo">
-    <span class="win-logo" data-page-node-id="q1GEtpW8qWFfNojTAOI59F"><span data-page-node-id="9NE853VowIbm2Ppsgy03lE"></span><span data-page-node-id="W3qE4AnhHXkIBiaGDXrPwV"></span><span data-page-node-id="CKF1OCqYinHgofK0V5Fq1Q"></span><span data-page-node-id="GgAvblpTmJdAip8dVCSLEp"></span></span>
+<div id="taskbar">
+  <button class="tb-btn" onclick="toggleStart()" title="开始">
+    <span class="win-logo"><span></span><span></span><span></span><span></span></span>
   </button>
-  <button class="tb-btn" onclick="openApp('notepad')" data-page-node-id="UAHUOUQZsuoTR5sFOT6Khi">📝</button>
-  <button class="tb-btn" onclick="openApp('calc')" data-page-node-id="FLQC7GSDS86d0SSQIoGOqY">🧮</button>
-  <button class="tb-btn" onclick="openApp('settings')" data-page-node-id="MLXYk13UVRTq2q8tnLJydB">⚙️</button>
-  <button class="tb-btn" onclick="bsod()" data-page-node-id="WbkeMGPYLiz5ECu4IVn2eH">💀</button>
+  <button class="tb-btn" onclick="openApp('notepad')">📝</button>
+  <button class="tb-btn" onclick="openApp('calc')">🧮</button>
+  <button class="tb-btn" onclick="openApp('settings')">⚙️</button>
+  <button class="tb-btn" onclick="bsod()">💀</button>
 </div>
-<div id="clock" data-page-node-id="TipI1XArb9H8yTp1v6C5qE">--:--<br data-page-node-id="5ysA5jO7Ca8XsvUX3IPZvr">----/--/--</div>
+<div id="clock">--:--<br>----/--/--</div>
+
+<!-- 桌面左下角常驻免责声明 -->
+<div id="disclaimer">WinSimu 为个人学习用途的网页模拟作品，不属于微软产品，与 Microsoft Corporation 无关。</div>
 
 <!-- 蓝屏 -->
-<div id="bsod" data-page-node-id="EJ7BBKn9AhkyXX2lK8n0z5">
-  <h1 data-page-node-id="JEmpM6tXz5kaK5rdRxcS6B">:(</h1>
-  <p data-page-node-id="0hZAaY6SGSZ2x0vDWX9SaR">你的模拟器遇到问题，需要假装重新启动。我们只假装收集某些错误信息，然后为你重新蓝屏。</p>
-  <div class="code" data-page-node-id="GGJmxnCraTT1SgRa9asEBe">终止代码: FIRST_PROJECT_BLUE_SCREEN<br data-page-node-id="IktFsvX86JbG7X5bmQwnAx">（点击任意位置返回桌面）</div>
+<div id="bsod">
+  <h1>:(</h1>
+  <p>你的模拟器遇到问题，需要假装重新启动。我们只假装收集某些错误信息，然后为你重新蓝屏。</p>
+  <div class="code">终止代码: FIRST_PROJECT_BLUE_SCREEN<br>（点击任意位置返回桌面）</div>
 </div>
 
 <script>
 /* =====================================================
-   WinSimu v1.1 —— copilot 的第一个 Windows 模拟器
+   WinSimu v1.2 —— copilot 的第一个 Windows 模拟器
    技术栈：纯 HTML + CSS + JavaScript（零依赖）
-   架构分三层：窗口管理器 / 应用 / 桌面环境
+   架构分四层：电源流程 / 窗口管理器 / 应用 / 桌面环境
    ===================================================== */
 
 let zTop = 100;        // 窗口层级计数器：每开一个新窗口 +1，保证新窗口在最上面
 let winCount = 0;      // 窗口编号
+let currentAccount = null;   // 当前登录的账号（null = 还没登录）
+
+/* ---------- 账号数据 ---------- */
+const accounts = [
+  { name: 'copilot', emoji: localStorage.getItem('winsimu_avatar') || '🧑‍💻', color: '#0078d7' },
+  { name: '访客',    emoji: '👤', color: '#6b6d70' }
+];
+
+/* ---------- 壁纸数据（名字 + 渐变 CSS）---------- */
+const walls = {
+  a: { name: '深海蓝', css: 'linear-gradient(135deg, #0a2a5e 0%, #1e63b8 35%, #3fa9f5 60%, #7fd4ff 100%)' },
+  b: { name: '熔岩橙', css: 'linear-gradient(135deg, #3d0e0e 0%, #a83a0e 40%, #ff8c42 100%)' },
+  c: { name: '极光绿', css: 'linear-gradient(135deg, #04160f 0%, #0b6e4f 45%, #4be3a0 100%)' },
+  d: { name: '星空紫', css: 'linear-gradient(135deg, #150726 0%, #4b1d7a 45%, #9d5cff 100%)' }
+};
+const avatarList = ['🧑‍💻', '😎', '🐱', '🚀', '🎮', '🤖'];
+
+/* =====================================================
+   电源流程：开机 → 选账号 → 桌面 ⇄ 注销/重启/关机
+   ===================================================== */
+const $id = (i) => document.getElementById(i);
+
+function hideAllScreens() {
+  ['boot-screen', 'login-screen', 'power-overlay', 'off-screen'].forEach(i => $id(i).style.display = 'none');
+}
+
+function bootUp() {                 // 开机：logo + 转圈，2.5 秒后进登录
+  hideAllScreens();
+  $id('boot-screen').style.display = 'flex';
+  setTimeout(showLogin, 2500);
+}
+
+function showLogin() {              // 登录界面：大时钟 + 账号列表
+  hideAllScreens();
+  renderLoginAccounts();
+  $id('login-welcome').style.display = 'none';
+  $id('login-accounts').style.display = 'flex';
+  $id('login-screen').style.display = 'flex';
+  tickClock();                      // 立刻刷一次登录界面的大时钟
+}
+
+function renderLoginAccounts() {    // 把账号数组画成一个个头像卡片
+  const box = $id('login-accounts');
+  box.innerHTML = '';
+  accounts.forEach((acc, i) => {
+    const div = document.createElement('div');
+    div.className = 'login-user';
+    div.onclick = () => loginAs(i);
+    div.innerHTML = `<span class="avatar" style="background:${acc.color}">${acc.emoji}</span><span class="uname">${acc.name}</span>`;
+    box.appendChild(div);
+  });
+}
+
+function loginAs(i) {               // 点了某个账号 → "欢迎" → 进桌面
+  currentAccount = i;
+  $id('login-accounts').style.display = 'none';
+  $id('login-hint').style.display = 'none';
+  $id('welcome-text').textContent = '欢迎，' + accounts[i].name;
+  $id('login-welcome').style.display = 'flex';
+  setTimeout(() => {
+    hideAllScreens();
+    $id('login-hint').style.display = 'block';
+    winCount = 0;                   // 新会话：窗口编号清零
+    updateUserChip();               // 开始菜单左下角显示当前用户
+  }, 1400);
+}
+
+function updateUserChip() {         // 同步"当前用户"到开始菜单
+  const acc = accounts[currentAccount];
+  $id('sm-username').textContent = acc.name;
+  $id('sm-avatar').textContent = acc.emoji;
+  $id('sm-avatar').style.background = acc.color;
+}
+
+function closeAllWindows() {        // 注销/关机前把所有窗口都关掉
+  document.querySelectorAll('.window').forEach(w => w.remove());
+  $id('startmenu').classList.remove('open');
+  $id('power-menu').classList.remove('open');
+}
+
+function powerTransition(text, then) {   // "正在xx…"黑屏过渡的通用函数
+  closeAllWindows();
+  $id('power-text').textContent = text;
+  $id('power-overlay').style.display = 'flex';
+  setTimeout(then, 1500);
+}
+
+function signOut() {                // 注销：回到选账号界面
+  powerTransition('正在注销…', showLogin);
+}
+function restartPC() {              // 重启：走一遍完整开机流程
+  powerTransition('正在重启…', bootUp);
+}
+function shutdownPC() {             // 关机：黑屏，点电源图标再开机
+  powerTransition('正在关机…', () => {
+    hideAllScreens();
+    $id('off-screen').style.display = 'flex';
+  });
+}
 
 /* ---------- 窗口管理器 ---------- */
 function createWindow(title, contentHTML) {
@@ -167,7 +429,7 @@ function createWindow(title, contentHTML) {
   win.className = 'window';
   win.style.left = (80 + winCount * 30) + 'px';   // 每个新窗口错开一点，不叠死
   win.style.top  = (60 + winCount * 25) + 'px';
-  win.style.width = '480px'; win.style.height = '340px';
+  win.style.width = '480px'; win.style.height = '360px';
   win.style.zIndex = ++zTop;
   win.innerHTML = `
     <div class="titlebar">
@@ -201,7 +463,7 @@ function makeDraggable(win, handle) {
   });
   window.addEventListener('mousemove', e => {
     if (!dragging) return;
-    win.style.left = (e.clientX - ox) + 'px';   // 窗口跟着鼠标走
+    win.style.left = (e.clientX - ox) + 'px';
     win.style.top  = (e.clientY - oy) + 'px';
   });
   window.addEventListener('mouseup', () => dragging = false);
@@ -213,7 +475,7 @@ const apps = {
     <textarea id="np" style="width:100%;height:100%;border:none;outline:none;resize:none;
       font-size:14px;background:transparent;user-select:text"
       placeholder="在这里写代码笔记……内容会自动保存"></textarea>`,
-    after: (win) => {   // 用 localStorage 存内容：关了浏览器也不丢
+    after: (win) => {
       const ta = win.querySelector('#np');
       ta.value = localStorage.getItem('winsimu_note') || '';
       ta.addEventListener('input', () => localStorage.setItem('winsimu_note', ta.value));
@@ -233,64 +495,131 @@ const apps = {
     }
   },
   settings: { title: '设置 - 个性化', html: `
-    <p>换壁纸（你做的第一个"设置"功能！）：</p>
-    <button onclick="setWall('a')">深海蓝</button>
-    <button onclick="setWall('b')">熔岩橙</button>
-    <button onclick="setWall('c')">极光绿</button>`,
+    <h3 style="margin-bottom:6px">当前效果预览</h3>
+    <div class="live-preview" id="lp">
+      <div class="lp-taskbar">
+        <span class="win-logo"><span></span><span></span><span></span><span></span></span>
+        <span class="lp-avatar" id="lp-avatar"></span>
+      </div>
+    </div>
+    <h3 style="margin:14px 0 4px">壁纸（每个选项下面自带预览图）</h3>
+    <div class="opt-grid" id="wall-grid"></div>
+    <h3 style="margin:14px 0 4px">头像（copilot 专属，选一个换上）</h3>
+    <div class="opt-row" id="avatar-row"></div>
+    <p style="margin-top:12px;color:#666;font-size:12px">选择立即生效，重启后也记得你的偏好。</p>`,
+    after: (win) => renderPersonalization(win)
   },
   about: { title: '此电脑', html: `
     <p><b>设备名称：</b>WINSIMU-PC</p>
     <p><b>处理器：</b> JavaScript 虚拟引擎</p>
     <p><b>内存：</b> 你的浏览器说了算</p>
     <p><b>系统类型：</b> HTML/CSS/JS 三件套</p>
-    <p><b>版本：</b> WinSimu 1.1（copilot 自制）</p>
+    <p><b>版本：</b> WinSimu 1.2（copilot 自制）</p>
+    <p><b>新功能：</b> 开机流程 / 多账号 / 注销重启关机 / 个性化预览</p>
     <p style="margin-top:10px;color:#e67e22">⚠️ 提示：本项目为个人学习用途的网页模拟作品，不属于微软产品，与 Microsoft Corporation 无关，未获微软授权或赞助。Windows 及相关标识为其所有者的商标。</p>
     <p style="margin-top:10px;color:#666">作者寄语：这是我的第一个模拟器项目，以后会慢慢变强。</p>`
   }
 };
 
+/* ---------- 个性化设置：生成预览卡片 ---------- */
+function renderPersonalization(win) {
+  const wallGrid = win.querySelector('#wall-grid');
+  const avatarRow = win.querySelector('#avatar-row');
+  const savedWall = localStorage.getItem('winsimu_wall') || 'a';
+  const savedAvatar = localStorage.getItem('winsimu_avatar') || '🧑‍💻';
+
+  // 壁纸卡片：名字在上，预览图在下
+  Object.entries(walls).forEach(([key, w]) => {
+    const card = document.createElement('div');
+    card.className = 'opt-card' + (key === savedWall ? ' active' : '');
+    card.innerHTML = `<span>${w.name}</span><div class="swatch" style="background:${w.css}"></div>`;
+    card.onclick = () => {
+      setWall(key);
+      win.querySelectorAll('#wall-grid .opt-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    };
+    wallGrid.appendChild(card);
+  });
+
+  // 头像卡片：emoji 大图标就是预览
+  avatarList.forEach(e => {
+    const card = document.createElement('div');
+    card.className = 'opt-card' + (e === savedAvatar ? ' active' : '');
+    card.innerHTML = `<span>头像</span><div class="emoji-swatch">${e}</div>`;
+    card.onclick = () => {
+      localStorage.setItem('winsimu_avatar', e);
+      accounts[0].emoji = e;                    // copilot 的头像换了
+      if (currentAccount === 0) updateUserChip();
+      updateLivePreview(win);
+      win.querySelectorAll('#avatar-row .opt-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+    };
+    avatarRow.appendChild(card);
+  });
+
+  updateLivePreview(win);                       // 打开设置先刷一次实时预览
+}
+
+/* 实时预览：小桌面 = 当前壁纸 + 当前头像 */
+function updateLivePreview(win) {
+  const key = localStorage.getItem('winsimu_wall') || 'a';
+  win.querySelector('#lp').style.background = walls[key].css;
+  win.querySelector('#lp-avatar').textContent = accounts[0].emoji;
+}
+
 function openApp(name) {
-  document.getElementById('startmenu').classList.remove('open');
+  $id('startmenu').classList.remove('open');
+  $id('power-menu').classList.remove('open');
   const app = apps[name];
   const win = createWindow(app.title, app.html);
   if (app.after) app.after(win);
 }
 
 function setWall(which) {
-  const walls = {
-    a: 'linear-gradient(135deg, #0a2a5e 0%, #1e63b8 35%, #3fa9f5 60%, #7fd4ff 100%)',
-    b: 'linear-gradient(135deg, #3d0e0e 0%, #a83a0e 40%, #ff8c42 100%)',
-    c: 'linear-gradient(135deg, #04160f 0%, #0b6e4f 45%, #4be3a0 100%)'
-  };
-  document.getElementById('desktop').style.background = walls[which];
-  localStorage.setItem('winsimu_wall', which);   // 记住选择，下次打开还是它
+  $id('desktop').style.background = walls[which].css;
+  $id('login-screen').style.background = walls[which].css;   // 登录界面跟着换
+  localStorage.setItem('winsimu_wall', which);
 }
-const savedWall = localStorage.getItem('winsimu_wall');
-if (savedWall) setWall(savedWall);
 
-/* ---------- 开始菜单 / 时钟 / 蓝屏 ---------- */
+/* ---------- 开始菜单 / 电源菜单 / 时钟 / 蓝屏 ---------- */
 function toggleStart() {
-  document.getElementById('startmenu').classList.toggle('open');
+  $id('power-menu').classList.remove('open');
+  $id('startmenu').classList.toggle('open');
 }
-document.addEventListener('mousedown', e => {   // 点别处时收起开始菜单
-  const sm = document.getElementById('startmenu');
-  if (!sm.contains(e.target) && !e.target.closest('#taskbar')) sm.classList.remove('open');
+function togglePowerMenu(e) {
+  e.stopPropagation();                          // 别让这次点击把菜单又收回去
+  $id('power-menu').classList.toggle('open');
+}
+
+document.addEventListener('mousedown', e => {   // 点别处时收起菜单
+  if (!e.target.closest('#startmenu')) {
+    $id('startmenu').classList.remove('open');
+    $id('power-menu').classList.remove('open');
+  }
 });
 
-setInterval(() => {                              // 每秒更新任务栏时钟
+function tickClock() {                          // 同时刷新任务栏时钟 + 登录大时钟
   const d = new Date();
   const pad = n => String(n).padStart(2, '0');
-  document.getElementById('clock').innerHTML =
-    pad(d.getHours()) + ':' + pad(d.getMinutes()) + '<br>' +
-    d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate();
-}, 1000);
+  const hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  const ymd = d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+  $id('clock').innerHTML = hm + '<br>' + d.getFullYear() + '/' + (d.getMonth()+1) + '/' + d.getDate();
+  $id('login-time').textContent = hm;
+  $id('login-date').textContent = ymd;
+}
+setInterval(tickClock, 1000);
 
-function bsod() {                                // 蓝屏彩蛋：点一下回来
-  document.getElementById('startmenu').classList.remove('open');
-  const b = document.getElementById('bsod');
+function bsod() {                               // 蓝屏彩蛋：点一下回来
+  $id('startmenu').classList.remove('open');
+  const b = $id('bsod');
   b.style.display = 'flex';
   b.onclick = () => b.style.display = 'none';
 }
+
+/* ---------- 启动！刷新页面 = 冷开机一次 ---------- */
+const savedWall = localStorage.getItem('winsimu_wall');
+if (savedWall && walls[savedWall]) setWall(savedWall);
+bootUp();
 </script>
 </body>
 </html>
